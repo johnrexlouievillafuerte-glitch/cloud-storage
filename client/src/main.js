@@ -527,7 +527,7 @@ async function init() {
   function initGoogleSignIn() {
     if (window.google && window.google.accounts) {
       window.google.accounts.id.initialize({
-        client_id: '%%GOOGLE_CLIENT_ID%%',
+        client_id: '999112386476-12ql8koafnrmtc0gpmep8il19shmim7v.apps.googleusercontent.com',
         callback: window.handleGoogleCredential,
         auto_select: false,
       });
