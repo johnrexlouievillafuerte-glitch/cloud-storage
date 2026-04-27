@@ -4,7 +4,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const STORAGE_DIR = path.resolve(process.env.STORAGE_DIR || './storage');
+const defaultDir = process.env.VERCEL ? '/tmp/storage' : './storage';
+const STORAGE_DIR = path.resolve(process.env.STORAGE_DIR || defaultDir);
 
 // Ensure storage directory exists
 if (!fs.existsSync(STORAGE_DIR)) {
