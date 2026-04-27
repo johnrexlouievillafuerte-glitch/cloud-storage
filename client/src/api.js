@@ -20,7 +20,14 @@ async function request(endpoint, options = {}) {
   }
 
   const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-  const data = await res.json();
+
+  let data;
+  try {
+    const text = await res.text();
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`Server error (${res.status})`);
+  }
 
   if (!res.ok) {
     throw new Error(data.error || 'Request failed');

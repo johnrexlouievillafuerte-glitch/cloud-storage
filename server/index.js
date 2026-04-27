@@ -48,13 +48,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// API 404 handler — must come AFTER all /api routes
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
 // Serve static frontend in production (local only)
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 app.use(express.static(clientDist));
 app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(clientDist, 'index.html'));
-  }
+  res.sendFile(path.join(clientDist, 'index.html'));
 });
 
 // Start server locally (skip on Vercel)
