@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { initAuth, login, register, logout, getUser, onAuthChange, refreshUser } from './auth.js';
+import { initAuth, login, register, logout, loginWithGoogle, getUser, onAuthChange, refreshUser } from './auth.js';
 
 const $ = (s, p = document) => p.querySelector(s);
 const app = document.getElementById('app');
@@ -63,7 +63,6 @@ function showToast(msg, type = 'info') {
 
 // ===== AUTH SCREEN =====
 function renderAuth() {
-  let isLogin = true;
   function draw() {
     app.innerHTML = `
     <div class="auth-page">
@@ -72,31 +71,28 @@ function renderAuth() {
           <div class="logo-icon">${icons.logo}</div>
           <span style="font-size:22px;font-weight:700">CloudVault</span>
         </div>
-        <h1>${isLogin ? 'Welcome back' : 'Create account'}</h1>
-        <p class="subtitle">${isLogin ? 'Sign in to access your files' : 'Get started with CloudVault'}</p>
+        <h1>Welcome to CloudVault</h1>
+        <p class="subtitle">Sign in with your Google account to access your files</p>
         <div id="auth-error"></div>
-        <form id="auth-form">
-          ${!isLogin ? '<div class="form-group"><label>Username</label><input id="auth-username" placeholder="johndoe" required /></div>' : ''}
-          <div class="form-group"><label>Email</label><input id="auth-email" type="email" placeholder="you@example.com" required /></div>
-          <div class="form-group"><label>Password</label><input id="auth-password" type="password" placeholder="••••••••" required minlength="6" /></div>
-          <button class="btn-primary" type="submit">${isLogin ? 'Sign In' : 'Create Account'}</button>
-        </form>
-        <div class="auth-switch">${isLogin ? "Don't have an account?" : 'Already have an account?'} <a id="auth-toggle">${isLogin ? 'Sign up' : 'Sign in'}</a></div>
+        <div id="google-signin-btn" class="google-signin-wrapper"></div>
+        <div class="auth-divider"><span>Secure cloud storage for everyone</span></div>
+        <div class="auth-features">
+          <div class="auth-feature">☁️ 2 TB Free Storage</div>
+          <div class="auth-feature">🔒 Verified Google Accounts Only</div>
+          <div class="auth-feature">📁 Upload, Preview & Share Files</div>
+        </div>
       </div>
     </div>`;
-    $('#auth-toggle').onclick = (e) => { e.preventDefault(); isLogin = !isLogin; draw(); };
-    $('#auth-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const email = $('#auth-email').value;
-      const password = $('#auth-password').value;
-      const errEl = $('#auth-error');
-      try {
-        if (isLogin) { await login(email, password); }
-        else { const username = $('#auth-username').value; await register(email, username, password); }
-      } catch (err) {
-        errEl.innerHTML = `<div class="auth-error">${err.message}</div>`;
-      }
-    };
+
+    // Render Google Sign-In button
+    if (window.google && window.google.accounts) {
+      window.google.accounts.id.renderButton(
+        document.getElementById('google-signin-btn'),
+        { theme: 'filled_blue', size: 'large', width: 340, text: 'signin_with', shape: 'pill', logo_alignment: 'left' }
+      );
+    } else {
+      document.getElementById('google-signin-btn').innerHTML = '<div class="auth-error">Loading Google Sign-In...</div>';
+    }
   }
   draw();
 }
@@ -515,9 +511,36 @@ function showProfileModal() {
 // ===== INIT =====
 async function init() {
   app.innerHTML = '<div class="loading-screen"><div class="spinner"></div></div>';
+
+  // Listen for Google credential
+  window.addEventListener('google-credential', async (e) => {
+    try {
+      await loginWithGoogle(e.detail);
+    } catch (err) {
+      const errEl = document.getElementById('auth-error');
+      if (errEl) errEl.innerHTML = `<div class="auth-error">${err.message}</div>`;
+      showToast(err.message, 'error');
+    }
+  });
+
+  // Initialize Google Identity Services
+  function initGoogleSignIn() {
+    if (window.google && window.google.accounts) {
+      window.google.accounts.id.initialize({
+        client_id: '%%GOOGLE_CLIENT_ID%%',
+        callback: window.handleGoogleCredential,
+        auto_select: false,
+      });
+    } else {
+      setTimeout(initGoogleSignIn, 500);
+    }
+  }
+  initGoogleSignIn();
+
   onAuthChange((user) => { user ? renderApp() : renderAuth(); });
   await initAuth();
   if (!getUser()) renderAuth();
 }
 
 init();
+

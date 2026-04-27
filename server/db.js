@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const pool = mysql.createPool({
+const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306'),
   user: process.env.DB_USER || 'root',
@@ -13,18 +13,26 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   charset: 'utf8mb4'
-});
+};
+
+// Add SSL for cloud MySQL (TiDB, PlanetScale, etc.)
+if (process.env.DB_SSL === 'true') {
+  dbConfig.ssl = { rejectUnauthorized: true };
+}
+
+const pool = mysql.createPool(dbConfig);
 
 export async function initDatabase() {
   const conn = await pool.getConnection();
   try {
-    // Create users table
+    // Create users table (password nullable for Google OAuth users)
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id            INT AUTO_INCREMENT PRIMARY KEY,
         email         VARCHAR(255) UNIQUE NOT NULL,
         username      VARCHAR(100) UNIQUE NOT NULL,
-        password      VARCHAR(255) NOT NULL,
+        password      VARCHAR(255),
+        google_id     VARCHAR(255) UNIQUE,
         avatar_url    VARCHAR(500),
         status        VARCHAR(255) DEFAULT 'Hey there! I am using CloudVault.',
         storage_used  BIGINT DEFAULT 0,
@@ -70,10 +78,15 @@ export async function initDatabase() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // Add status column if missing (migration for existing DBs)
-    try {
-      await conn.execute(`ALTER TABLE users ADD COLUMN status VARCHAR(255) DEFAULT 'Hey there! I am using CloudVault.' AFTER avatar_url`);
-    } catch (e) { /* column already exists */ }
+    // Migrations for existing databases
+    const migrations = [
+      `ALTER TABLE users ADD COLUMN status VARCHAR(255) DEFAULT 'Hey there! I am using CloudVault.' AFTER avatar_url`,
+      `ALTER TABLE users ADD COLUMN google_id VARCHAR(255) UNIQUE AFTER password`,
+      `ALTER TABLE users MODIFY COLUMN password VARCHAR(255) NULL`,
+    ];
+    for (const sql of migrations) {
+      try { await conn.execute(sql); } catch (e) { /* already applied */ }
+    }
 
     console.log('✅ Database tables initialized successfully');
   } finally {

@@ -33,6 +33,7 @@ export const api = {
   // Auth
   register: (body) => request('/auth/register', { method: 'POST', body }),
   login: (body) => request('/auth/login', { method: 'POST', body }),
+  googleAuth: (credential) => request('/auth/google', { method: 'POST', body: { credential } }),
   getMe: () => request('/auth/me'),
   updateProfile: (body) => request('/auth/me', { method: 'PATCH', body }),
 

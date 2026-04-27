@@ -28,6 +28,14 @@ export async function initAuth() {
   }
 }
 
+export async function loginWithGoogle(credential) {
+  const data = await api.googleAuth(credential);
+  localStorage.setItem('token', data.token);
+  currentUser = data.user;
+  notify();
+  return currentUser;
+}
+
 export async function login(email, password) {
   const data = await api.login({ email, password });
   localStorage.setItem('token', data.token);
