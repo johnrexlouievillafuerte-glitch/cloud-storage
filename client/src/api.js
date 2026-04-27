@@ -1,5 +1,4 @@
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_BASE = isLocal ? '/api' : 'https://lighting-sort-jade-hollow.trycloudflare.com/api';
+const API_BASE = '/api';
 
 function getToken() {
   return localStorage.getItem('token');
