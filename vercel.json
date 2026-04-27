@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "buildCommand": "cd client && npx vite build",
+  "outputDirectory": "client/dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" }
+  ],
+  "functions": {
+    "api/index.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
+}
